@@ -5,7 +5,7 @@
 
     <groupId>com.example</groupId>
     <artifactId>mindcircuitbatch13</artifactId>
-    <version>2.246</version>
+    <version>2.246-SNAPSHOT</version>
     <packaging>war</packaging>
 
 	<properties>
@@ -17,12 +17,12 @@
 	<distributionManagement>
 		 <snapshotRepository>
 		    <id>NexusRepo</id>
-		    <url>http://100.25.155.112:8081/repository/mc-snapshot/</url>
+		    <url>http://54.90.107.78:8081/repository/project-snapshot/</url>
 		 </snapshotRepository>
 		
 		<repository>
 		    <id>NexusRepo</id>
-		    <url>http://ec2-3-87-3-6.compute-1.amazonaws.com:8081/repository/mc-artifacts/</url>
+		    <url>http://54.90.107.78:8081/repository/project-release/</url>
 		</repository>
   	</distributionManagement>
 
