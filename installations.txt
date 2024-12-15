@@ -1,0 +1,268 @@
+      cicd project with :- git,Jenkins,maven,nexus,tomcat,trivy,docker,sonarube,tomcat(container)
+
+Jenkins server:- Jenkins,maven,trivy,docker,git (t2.medium)
+
+ports:8080 and tomcat will run on port 80 with docker container 
+
+jenkins plugins :- deploy to container,pipeline stage view
+
+
+sudo wget -O /etc/yum.repos.d/jenkins.repo \
+    https://pkg.jenkins.io/redhat-stable/jenkins.repo
+sudo rpm --import https://pkg.jenkins.io/redhat-stable/jenkins.io-2023.key
+sudo yum upgrade
+sudo yum install  java-17-amazon-corretto-devel -y
+sudo yum install jenkins -y
+systemctl start jenkins
+systemctl enable jenkins
+
+mount -o remount,size=2G /tmp/
+
+yum install maven -y
+yum insall git -y
+
+yum install docker -y
+sudo systemctl start docker
+sudo systemctl enable docker
+sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
+docker-compose --version
+
+rpm -ivh https://github.com/aquasecurity/trivy/releases/download/v0.18.3/trivy_0.18.3_Linux-64bit.rpm
+
+trivy commnds to scan
+
+and edit maven vi /etc/maven/settings.xml
+
+usermod -aG docker jenkins
+systemctl restart docker
+systemctl restart Jenkins -- to run docker on jenkins
+
+
+
+                    
+
+
+
+
+
+support sever 2 :-nexus and tomcat and SonarQube (t2.medium) 
+
+port :- 9000 8081 8082
+
+
+
+wget https://download.java.net/java/GA/jdk11/openjdk-11_linux-x64_bin.tar.gz
+
+tar -xzf openjdk-11_linux-x64_bin.tar.gz
+
+sudo mv jdk-11 /usr/local/
+
+export JAVA_HOME=/usr/local/jdk-11
+export PATH=$JAVA_HOME/bin:$PATH
+
+source ~/.bashrc
+
+java -version
+
+sudo useradd -r -m -s /bin/false nexus
+
+cd /opt
+sudo wget https://download.sonatype.com/nexus/3/latest-unix.tar.gz
+
+sudo tar -xvzf latest-unix.tar.gz
+
+sudo mv nexus-3* nexus
+
+sudo chown -R nexus:nexus /opt/nexus
+sudo chown -R nexus:nexus /opt/sonatype-work
+sudo chmod -R 750 /opt/nexus
+sudo chmod -R 750 /opt/sonatype-work
+
+
+
+sudo vi /opt/nexus/bin/nexus.rc
+run_as_user="nexus"
+
+sudo vi /etc/systemd/system/nexus.service
+
+[Unit]
+Description=Nexus Repository Manager
+After=network.target
+
+[Service]
+Type=simple
+User =nexus
+ExecStart=/opt/nexus/bin/nexus run
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+
+sudo systemctl daemon-reload
+sudo systemctl start nexus
+sudo systemctl enable nexus
+sudo systemctl status nexus
+
+http://<your-ec2-public-ip>:8081
+
+username : admin
+cat /opt/sonatype-work/nexus3/admin.password
+set new password may be as admin
+and Enable anonymous access
+
+make 2 folders in nexus repo and copy the url and paste in pom.xml
+and edit vi /etc/maven/settings.xml
+
+
+yum install java -y
+
+cd /opt
+sudo wget https://dlcdn.apache.org/tomcat/tomcat-11/v11.0.2/bin/apache-tomcat-11.0.2.tar.gz 
+sudo tar -xvf apache-tomcat-11.0.2.tar.gz
+cd /opt/apache-tomcat-11.0.2/webapps/manager/META-INF
+sudo sed -i 's/"127\\.\\d+\\.\\d+\\.\\d+|::1|0:0:0:0:0:0:0:1"/".*"/g' context.xml
+cd /opt/apache-tomcat-11.0.2/conf
+sudo mv tomcat-users.xml tomcat-users_bkup.xml
+sudo touch tomcat-users.xml
+sudo echo '<?xml version="1.0" encoding="utf-8"?>
+        <tomcat-users>
+        <role rolename="manager-gui"/>
+        <user username="admin" password="pass" roles="manager-gui, manager-script, manager-status"/>
+        </tomcat-users>' > tomcat-users.xml
+
+cd /opt/apache-tomcat-11.0.2/conf/
+sudo sed -i 's/Connector port="8080"/Connector port="8082"/g' server.xml
+sudo /opt/apache-tomcat-11.0.2/bin/startup.sh
+
+this will run on port 8082
+
+go to deploy to war and give credentials and url
+
+
+yum insall git -y
+
+yum install docker -y
+sudo systemctl start docker
+sudo systemctl enable docker
+sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
+docker-compose --version
+
+vi docker-compose.yaml
+
+version: '3.9'
+
+services:
+  sonarqube:
+    image: sonarqube:community
+    container_name: sonarqube
+    ports:
+      - "9000:9000"
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_extensions:/opt/sonarqube/extensions
+      - sonarqube_logs:/opt/sonarqube/logs
+    networks:
+      - app_network
+
+volumes:
+  sonarqube_data:
+  sonarqube_extensions:
+  sonarqube_logs:
+
+networks:
+  app_network:
+
+docker-compose up -d 
+
+ stage('sonar analysis') {
+            steps {
+                sh ''' mvn sonar:sonar \
+                      -Dsonar.host.url=http://54.90.107.78:9000/ \
+                      -Dsonar.login=squ_cbc28c9f992b252d3ad940fd217c77c3f146f5ec '''
+            }
+        }
+
+go to my account and security and generate token and user token
+
+
+
+Jenkins file 
+
+
+pipeline {
+    agent any
+
+    environment {
+        IMAGE_NAME = 'tomcat' // Replace with your Docker image name
+        CONTAINER_NAME = 'tomcat-server' // Replace with your container name
+    }
+
+    stages {
+        stage('Poll SCM') {
+            steps {
+                git branch: 'main', url: 'https://github.com/santoshpalla27/my-ci-.git'
+            }
+        }
+        stage('sonar analysis') {
+            steps {
+                sh ''' mvn sonar:sonar \
+                      -Dsonar.host.url=http://54.90.107.78:9000/ \
+                      -Dsonar.login=squ_cbc28c9f992b252d3ad940fd217c77c3f146f5ec '''
+            }
+        }
+        stage('mvn build') {
+            steps {
+                sh "mvn clean install "
+            }
+        }
+        stage('Deploy WAR to Tomcat') {
+            steps {
+                deploy adapters: [tomcat9(credentialsId: 'tomcat-credentials', path: '', url: 'http://54.90.107.78:8082/')], contextPath: 'webapp', war: '**/*.war'
+            }
+        }
+        stage('mvn deploy to nexus') {
+            steps {
+                sh "mvn clean deploy "
+            }
+        }
+        stage('Cleanup Old Images') {
+            steps {
+                sh "docker rmi -f \$(docker images -q --filter 'dangling=true') || true"
+                sh "docker rmi -f \$(docker images -q ${IMAGE_NAME}) || true"
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                sh "docker build -t ${IMAGE_NAME} -f Dockerfile ."
+            }
+        }
+        stage('Scan Docker Image and Repository') {
+            steps {
+                sh "trivy image ${IMAGE_NAME}"
+                sh "trivy fs ."
+            }
+        }
+        stage('Cleanup Old Containers') {
+            steps {
+                sh "docker rm -f ${CONTAINER_NAME} || true"
+            }
+        }
+
+        stage('Run New Container') {
+            steps {
+                sh "docker run -d --name ${CONTAINER_NAME} -p 80:8080 ${IMAGE_NAME}"
+            }
+        }
+    }
+
+    post {
+        always {
+            echo 'Pipeline completed.'
+        }
+    }
+}
+
+
