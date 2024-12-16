@@ -28,4 +28,8 @@ COPY --from=buildstage /opt/webpage/target/*.war .
 RUN rm -rf ROOT && mv *.war ROOT.war
 EXPOSE 8080
 
+go to setting and web hook and add http://<jenkins-domain>/github-webhook/
 
+and content type application Json
+
+and select all events or push by choice and create
