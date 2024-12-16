@@ -16,7 +16,7 @@ sudo yum install jenkins -y
 systemctl start jenkins
 systemctl enable jenkins
 
-mount -o remount,size=2G /tmp/
+mount -o remount,size=2G /tmp/  -- use this only in t2.micro
 
 yum install maven -y
 yum insall git -y
