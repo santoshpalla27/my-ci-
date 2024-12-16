@@ -16,8 +16,8 @@ pipeline {
         stage('sonar analysis') {
             steps {
                 sh ''' mvn sonar:sonar \
-                      -Dsonar.host.url=http://54.90.107.78:9000/ \
-                      -Dsonar.login=squ_cbc28c9f992b252d3ad940fd217c77c3f146f5ec '''
+                      -Dsonar.host.url=http://18.209.65.142:9000/ \
+                      -Dsonar.login=squ_f14b48c6af42c66f4302e1b962b97e4463d77d8d '''
             }
         }
         stage('mvn build') {
@@ -27,12 +27,17 @@ pipeline {
         }
         stage('Deploy WAR to Tomcat') {
             steps {
-                deploy adapters: [tomcat9(credentialsId: 'tomcat-credentials', path: '', url: 'http://54.90.107.78:8082/')], contextPath: 'webapp', war: '**/*.war'
+                deploy adapters: [tomcat9(credentialsId: 'tomcat-credentials', path: '', url: 'http://18.209.65.142:8082/')], contextPath: 'webapp', war: '**/*.war'
             }
         }
         stage('mvn deploy to nexus') {
             steps {
                 sh "mvn clean deploy "
+            }
+        }
+        stage('Cleanup Old Containers') {
+            steps {
+                sh "docker rm -f ${CONTAINER_NAME} || true"
             }
         }
         stage('Cleanup Old Images') {
@@ -53,12 +58,6 @@ pipeline {
                 sh "trivy fs ."
             }
         }
-        stage('Cleanup Old Containers') {
-            steps {
-                sh "docker rm -f ${CONTAINER_NAME} || true"
-            }
-        }
-
         stage('Run New Container') {
             steps {
                 sh "docker run -d --name ${CONTAINER_NAME} -p 80:8080 ${IMAGE_NAME}"
