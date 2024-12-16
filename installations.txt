@@ -19,7 +19,7 @@ systemctl enable jenkins
 mount -o remount,size=2G /tmp/  -- use this only in t2.micro
 
 yum install maven -y
-yum insall git -y
+yum install git -y
 
 yum install docker -y
 sudo systemctl start docker
